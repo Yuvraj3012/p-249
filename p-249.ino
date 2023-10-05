@@ -3,7 +3,7 @@
 #include<Adafruit_MQTT_Client.h>
 #include<DHT.h>
 
-//  rgb led details
+
 byte rpin = 25;
 byte gpin = 26;
 byte bpin = 27;
@@ -14,31 +14,29 @@ byte resolution = 8;
 int frequency = 5000;
 byte rval , gval , bval = 0;
 
-//  dht details
+
 byte dht_pin = 4;
 #define dht_type DHT11
 DHT dht(dht_pin , dht_type);
 
-//  wifi credentials
+
 const char ssid[] = "home sweet home";
 const char password[] = "password1998";
 
-//  io details
+
 #define IO_USERNAME  "gautam_ahuja"
 #define IO_KEY       "aio_tCTv99COYAIRajl5DfpRgu9FZdI0"
 #define IO_BROKER    "io.adafruit.com"
 #define IO_PORT       1883
 
-//  client details
 WiFiClient wificlient;
 Adafruit_MQTT_Client mqtt(&wificlient , IO_BROKER , IO_PORT , IO_USERNAME , IO_KEY);
 
-//  attaching io feeds named redvalue , greenvalue , bluevalue with out objects red, green, blue
+
 Adafruit_MQTT_Subscribe red = Adafruit_MQTT_Subscribe(&mqtt , IO_USERNAME"/feeds/redvalue");
 Adafruit_MQTT_Subscribe green = Adafruit_MQTT_Subscribe(&mqtt , IO_USERNAME"/feeds/greenvalue");
 Adafruit_MQTT_Subscribe blue = Adafruit_MQTT_Subscribe(&mqtt , IO_USERNAME"/feeds/bluevalue");
 
-//  attaching feeds to object for publishing
 Adafruit_MQTT_Publish dp = Adafruit_MQTT_Publish(&mqtt , IO_USERNAME"/feeds/dew");
 Adafruit_MQTT_Publish tc = Adafruit_MQTT_Publish(&mqtt , IO_USERNAME"/feeds/temperature celcius");
 Adafruit_MQTT_Publish tf = Adafruit_MQTT_Publish(&mqtt , IO_USERNAME"/feeds/temperature fahrenheit");
@@ -49,7 +47,7 @@ void setup()
 {
   Serial.begin(115200);
 
-  //  connecting with wifi
+  
   Serial.print("Connecting with : ");
   Serial.println(ssid);
   WiFi.begin(ssid , password);
@@ -64,7 +62,6 @@ void setup()
   Serial.println(WiFi.localIP());
   Serial.println();
 
-  //  RGB led setup
   ledcSetup(rchannel , frequency , resolution);
   ledcSetup(gchannel , frequency , resolution);
   ledcSetup(bchannel , frequency , resolution);
@@ -85,15 +82,13 @@ void setup()
 
 void loop()
 {
-  //  connecting with server
   mqttconnect();
 
-  //  reading values from dht sensor
   float tempc = dht.readTemperature();
   float tempf = dht.readTemperature(true);
   float tempk = tempc + 273.15;
   float humidity = dht.readHumidity();
-  float dew_point = (tempc - (100 - humidity) / 5);  //  dew point in celcius
+  float dew_point = (tempc - (100 - humidity) / 5);   
 
   if (isnan(tempc)  ||  isnan(tempf)  ||  isnan(humidity))
   {
@@ -102,20 +97,16 @@ void loop()
     return;
   }
 
-  //  printing these values on serial monitor
   String val = String(tempc) + " *C" + "\t" + String(tempf) + " *F" + "\t" + String(tempk) + " *K" + "\t" + 
                String(humidity) + " %RH" + "\t" + String(dew_point) + " *C";
   Serial.println(val);
 
-  //  publishing values on IO : feed object.publish(data)
   if (!tc.publish(tempc)  ||  !tf.publish(tempf)  ||  !tk.publish(tempk)  ||  !dp.publish(dew_point)  ||  !h.publish(humidity))
   {
     Serial.println("Can't publish!");
   }
   
 
-  //  subscribing feeds, making subscription pointer to get values
-  //  only this type of variable/object can catch feed and then we can extract its value.
   Adafruit_MQTT_Subscribe *subscription;
   while (true)
   {
@@ -125,13 +116,12 @@ void loop()
       Serial.println("Can't catch feed");
       break;
     }
-    else  //  got something
+    else  //  
     {
       if (subscription  ==  &red)
       {
         String temp = (char *)red.lastread;
 
-        //  converting string to integer
         rval = temp.toInt();
         makecolor(rval , gval , bval);
       }
@@ -140,7 +130,6 @@ void loop()
       {
         String temp = (char *)green.lastread;
 
-        //  converting string to integer
         gval = temp.toInt();
         makecolor(rval , gval , bval);
       }
@@ -149,15 +138,13 @@ void loop()
       {
         String temp = (char *)blue.lastread;
 
-        //  converting string to integer
         bval = temp.toInt();
         makecolor(rval , gval , bval);
       }
     }
   }
 
-  //  wait after publishing data to avoid excessive load on io server
-  //  publish rate should not exceed the limit : 30 data points per minute
+  
   delay(7000);
 }
 
